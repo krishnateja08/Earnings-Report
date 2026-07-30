@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Earnings Announcements — India &amp; USA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0E141C; --surface:#161F2B; --surface-2:#1C2735; --hairline:#2A3646;
+    --text:#EAEEF3; --text-muted:#8B96A6; --text-faint:#5C6779;
+    --accent:#E3B341; --accent-ink:#0E141C; --pos:#34D399; --neg:#F0554A;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--ink); color:var(--text); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; min-height:100vh;}
+  .mono{font-family:'IBM Plex Mono',monospace; font-variant-numeric:tabular-nums;}
+  button{cursor:pointer; font-family:inherit;}
+  .ticker-wrap{background:#0A0F15; border-bottom:1px solid var(--hairline); overflow:hidden; white-space:nowrap; position:sticky; top:0; z-index:40;}
+  .ticker-track{display:inline-flex; gap:36px; padding:6px 0; animation:scroll-left 32s linear infinite;}
+  .ticker-wrap:hover .ticker-track{animation-play-state:paused;}
+  @keyframes scroll-left{from{transform:translateX(0);} to{transform:translateX(-50%);}}
+  .tick-item{font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--text-muted); display:inline-flex; align-items:center; gap:6px;}
+  .tick-item b{color:var(--text); font-weight:600;}
+  .tick-item.up{color:var(--pos);} .tick-item.down{color:var(--neg);}
+  header{position:sticky; top:26px; z-index:39; background:rgba(14,20,28,.92); backdrop-filter:blur(10px); border-bottom:1px solid var(--hairline); padding:18px 28px 14px;}
+  .header-row{display:flex; align-items:center; gap:20px; flex-wrap:wrap; max-width:1280px; margin:0 auto;}
+  .brand{display:flex; align-items:baseline; gap:10px; margin-right:auto;}
+  .brand .mark{width:9px;height:9px;border-radius:2px;background:var(--accent); display:inline-block; transform:rotate(45deg);}
+  h1{font-size:19px; font-weight:600; margin:0; letter-spacing:-.01em; font-family:'Space Grotesk',sans-serif;}
+  .brand .sub{color:var(--text-faint); font-size:12px; font-family:'IBM Plex Mono',monospace;}
+  .search-box{position:relative; flex:1 1 240px; max-width:320px;}
+  .search-box input{width:100%; background:var(--surface); border:1px solid var(--hairline); color:var(--text); font-size:13px; padding:9px 12px 9px 32px; border-radius:7px;}
+  .search-box input::placeholder{color:var(--text-faint);}
+  .search-box input:focus{outline:none; border-color:var(--accent);}
+  .search-box svg{position:absolute; left:10px; top:50%; transform:translateY(-50%); opacity:.5;}
+  select.pill-select{background:var(--surface); border:1px solid var(--hairline); color:var(--text); font-size:13px; padding:8px 12px; border-radius:7px; font-family:'IBM Plex Mono',monospace;}
+  select.pill-select:focus{outline:none; border-color:var(--accent);}
+  .exch-toggle{display:flex; background:var(--surface); border:1px solid var(--hairline); border-radius:7px; overflow:hidden;}
+  .exch-toggle button{background:none; border:none; color:var(--text-muted); font-size:12.5px; font-family:'IBM Plex Mono',monospace; padding:8px 13px;}
+  .exch-toggle button.active{background:var(--accent); color:var(--accent-ink); font-weight:600;}
+  .chip-row{max-width:1280px; margin:12px auto 0; display:flex; gap:8px; flex-wrap:wrap;}
+  .date-toggle{max-width:1280px; margin:12px auto 0; width:fit-content;}
+  .date-toggle button{font-weight:600;}
+  .chip{border:1px solid var(--hairline); background:var(--surface); color:var(--text-muted); font-size:12.5px; padding:6px 13px; border-radius:20px; display:flex; align-items:center; gap:6px;}
+  .chip .dot{width:7px;height:7px;border-radius:50%;}
+  .chip.active{color:var(--text); border-color:currentColor;}
+  .chip:hover{border-color:var(--text-faint);}
+  main{max-width:1280px; margin:0 auto; padding:22px 28px 60px;}
+  .result-count{color:var(--text-faint); font-size:12.5px; font-family:'IBM Plex Mono',monospace; margin-bottom:14px;}
+  .cards{display:flex; flex-direction:column; gap:10px;}
+  .card{background:var(--surface); border:1px solid var(--hairline); border-radius:10px; display:grid; grid-template-columns:250px 1fr 210px; align-items:center; position:relative; overflow:hidden; transition:border-color .15s;}
+  .card:hover{border-color:var(--text-faint);}
+  .card .sector-bar{position:absolute; left:0; top:0; bottom:0; width:4px;}
+  .c-left{display:flex; align-items:center; gap:12px; padding:16px 18px 16px 22px;}
+  .logo{width:42px; height:42px; border-radius:8px; background:var(--surface-2); display:flex; align-items:center; justify-content:center; font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:15px; flex-shrink:0; border:1px solid var(--hairline);}
+  .co-name{font-size:14px; font-weight:600; line-height:1.25;}
+  .co-ticker{font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--text-faint); margin-top:2px;}
+  .badges{display:flex; gap:5px; margin-top:6px; flex-wrap:wrap;}
+  .pill{font-size:10px; padding:2px 7px; border-radius:20px; font-weight:600;}
+  .pill-sector{color:#0E141C;}
+  .pill-outline{border:1px solid var(--hairline); color:var(--text-muted); background:none;}
+  .c-center{display:grid; grid-template-columns:repeat(3,1fr); grid-auto-rows:min-content; gap:12px 14px; padding:14px 10px; border-left:1px solid var(--hairline); border-right:1px solid var(--hairline); height:100%;}
+  .metric{display:flex; flex-direction:column; justify-content:center; gap:3px;}
+  .metric .label{font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.06em;}
+  .metric .value{font-family:'IBM Plex Mono',monospace; font-size:14px; font-weight:500;}
+  .metric .value.pending{color:var(--text-faint); font-style:italic; font-weight:400;}
+  .surprise.pos{color:var(--pos);} .surprise.neg{color:var(--neg);}
+  .trend-bars{display:flex; align-items:flex-end; gap:2px; height:22px; margin-top:2px;}
+  .trend-bars div{width:5px; background:var(--hairline); border-radius:1px;}
+  .trend-bars div.latest{background:var(--accent);}
+  .c-right{display:flex; flex-direction:column; align-items:flex-end; gap:8px; padding:14px 20px 14px 14px;}
+  .spark-row{display:flex; align-items:center; gap:8px;}
+  .spark-chg{font-family:'IBM Plex Mono',monospace; font-size:11.5px;}
+  .actions{display:flex; align-items:center; gap:8px;}
+  .btn-report{background:none; border:1px solid var(--hairline); color:var(--text); font-size:11.5px; padding:6px 12px; border-radius:6px; font-weight:500;}
+  .btn-report:hover{border-color:var(--accent); color:var(--accent);}
+  .watch-btn{background:none; border:1px solid var(--hairline); border-radius:6px; width:29px; height:29px; display:flex; align-items:center; justify-content:center; color:var(--text-faint);}
+  .watch-btn.active{color:var(--accent); border-color:var(--accent);}
+  .result-time{font-size:10.5px; color:var(--text-faint); font-family:'IBM Plex Mono',monospace;}
+  .when-badge{display:inline-block; padding:1px 7px; border-radius:20px; font-weight:700; letter-spacing:.02em;}
+  .when-badge.today{background:rgba(227,179,65,.16); color:var(--accent);}
+  .section-title{font-family:'Space Grotesk',sans-serif; font-size:14px; font-weight:600; margin:36px 0 12px; display:flex; align-items:center; gap:8px;}
+  .section-title .tag{font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--text-faint); font-weight:400;}
+  .heatmap{display:flex; gap:6px; flex-wrap:wrap;}
+  .heat-cell{width:64px; padding:9px 6px; border-radius:7px; text-align:center; font-family:'IBM Plex Mono',monospace;}
+  .heat-cell .t{font-size:10.5px; font-weight:600; color:#0E141C;}
+  .heat-cell .p{font-size:11px; font-weight:600; color:#0E141C;}
+  footer{max-width:1280px; margin:30px auto 0; padding:18px 28px 0; border-top:1px solid var(--hairline); color:var(--text-faint); font-size:11.5px; line-height:1.6;}
+  .modal-backdrop{position:fixed; inset:0; background:rgba(6,9,13,.7); display:none; align-items:center; justify-content:center; z-index:100; padding:20px;}
+  .modal-backdrop.open{display:flex;}
+  .modal{background:var(--surface); border:1px solid var(--hairline); border-radius:12px; max-width:560px; width:100%; padding:26px 28px; position:relative;}
+  .modal-close{position:absolute; top:16px; right:16px; background:none; border:none; color:var(--text-faint); font-size:20px;}
+  .modal h2{font-family:'Space Grotesk',sans-serif; font-size:18px; margin:0 0 2px;}
+  .modal .m-sub{color:var(--text-faint); font-size:12px; font-family:'IBM Plex Mono',monospace; margin-bottom:18px;}
+  .modal-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:18px;}
+  .modal-grid .metric{background:var(--surface-2); padding:10px 12px; border-radius:8px;}
+  @media (max-width:880px){
+    .card{grid-template-columns:1fr;}
+    .c-center{border:none; border-top:1px solid var(--hairline); border-bottom:1px solid var(--hairline); grid-template-columns:repeat(2,1fr);}
+    .c-right{align-items:flex-start; flex-direction:row; justify-content:space-between;}
+  }
+  @media (prefers-reduced-motion: reduce){ .ticker-track{animation:none;} }
+</style>
+</head>
+<body>
+<div class="ticker-wrap"><div class="ticker-track" id="tickerTrack"></div></div>
+<header>
+  <div class="header-row">
+    <div class="brand">
+      <span class="mark"></span>
+      <div><h1 id="pageTitle">Earnings Announcements</h1><div class="sub" id="dateSub">—</div></div>
+    </div>
+    <div class="exch-toggle" id="marketToggle">
+      <button data-mk="IN" class="active">India</button>
+      <button data-mk="US">USA</button>
+    </div>
+    <div class="search-box">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B96A6" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input id="searchInput" type="text" placeholder="Search company or ticker…">
+    </div>
+    <div class="exch-toggle" id="exchToggle"></div>
+  </div>
+  <div class="exch-toggle date-toggle" id="dateToggle">
+    <button data-date="today">Today</button>
+    <button data-date="tomorrow">Tomorrow</button>
+    <button data-date="week" class="active">This week</button>
+  </div>
+  <div class="chip-row" id="sectorChips"></div>
+</header>
+<main>
+  <div class="section-title" style="margin-top:0;">Surprise heatmap <span class="tag">EPS actual vs. estimate, last reported quarter</span></div>
+  <div class="heatmap" id="heatmap"></div>
+  <div class="result-count" id="resultCount" style="margin-top:32px;"></div>
+  <div class="cards" id="cardsWrap"></div>
+</main>
+<footer id="pageFooter">
+  Generated by india_earnings_dashboard.py using free Yahoo Finance data (via yfinance) on July 30, 2026.
+  Figures shown in local currency (₹ Cr for India, $ for USA) where applicable. Promoter holding and
+  pre/post-market timing are not reliably available from this data source and are marked accordingly.
+  Always verify with official exchange filings before making investment decisions.
+</footer>
+<div class="modal-backdrop" id="modalBackdrop"><div class="modal" id="modalBody"></div></div>
+<script>
+const MARKETS = {
+  IN: {
+    label: 'India',
+    sectors: {"Technology": "#4C8DFF", "Energy": "#F5A524", "Banking": "#2BB673", "FMCG": "#A78BFA", "Automobile": "#C1440E", "Pharma": "#2DD4BF", "Other": "#8B96A6"},
+    sectorNames: null,
+    companies: [{"name": "ITC Limited", "ticker": "ITC", "exch": "NSE", "sector": "FMCG", "market": "IN", "currency": "\u20b9", "cap": "Large", "when": "tomorrow", "time": "Not specified", "epsEst": 3.2, "revEst": 19147.6, "epsAct": 4.28, "revAct": null, "surprise": 7.0, "promoter": null, "eps4q": [4.18, 4.08, 4.23, 4.28], "spark": [281.0, 280.8, 281.3, 283.45, 285.85, 284.65, 286.25], "rsi": 54.1, "fibLow": 275.55, "fibHigh": 401.99, "fibLevel": 8.5, "fibZoneLabel": "0% \u2013 23.6%", "fibZoneLow": 275.55, "fibZoneHigh": 305.39}, {"name": "Maruti Suzuki India Limited", "ticker": "MARUTI", "exch": "NSE", "sector": "Automobile", "market": "IN", "currency": "\u20b9", "cap": "Large", "when": "tomorrow", "time": "Not specified", "epsEst": 110.52, "revEst": 52684.8, "epsAct": 114.2, "revAct": null, "surprise": -14.3, "promoter": null, "eps4q": [118.06, 104.74, 120.67, 114.2], "spark": [13597.0, 13545.0, 13403.0, 13442.0, 13730.0, 13802.0, 13948.0], "rsi": 56.3, "fibLow": 12302.0, "fibHigh": 17292.0, "fibLevel": 33.0, "fibZoneLabel": "23.6% \u2013 38.2%", "fibZoneLow": 13479.64, "fibZoneHigh": 14208.18}, {"name": "Sun Pharmaceutical Industries Limited", "ticker": "SUNPHARMA", "exch": "NSE", "sector": "Pharma", "market": "IN", "currency": "\u20b9", "cap": "Large", "when": "tomorrow", "time": "Not specified", "epsEst": 12.48, "revEst": 15473.8, "epsAct": 11.3, "revAct": null, "surprise": -4.3, "promoter": null, "eps4q": [11.98, 13.0, 15.48, 11.3], "spark": [1961.9, 1943.0, 1954.0, 1941.1, 1973.7, 1976.7, 1989.9], "rsi": 69.1, "fibLow": 1549.15, "fibHigh": 1989.9, "fibLevel": 100.0, "fibZoneLabel": "78.6% \u2013 100%", "fibZoneLow": 1895.58, "fibZoneHigh": 1989.9}, {"name": "Tata Steel Limited", "ticker": "TATASTEEL", "exch": "NSE", "sector": "Other", "market": "IN", "currency": "\u20b9", "cap": "Large", "when": "today", "time": "Not specified", "epsEst": 2.37, "revEst": 65453.8, "epsAct": 1.69, "revAct": null, "surprise": -28.7, "promoter": null, "eps4q": [2.74, 2.24, 2.51, 1.69], "spark": [187.24, 186.53, 184.23, 182.67, 184.25, 182.63, 187.27], "rsi": 47.4, "fibLow": 149.92, "fibHigh": 216.66, "fibLevel": 56.0, "fibZoneLabel": "50% \u2013 61.8%", "fibZoneLow": 183.29, "fibZoneHigh": 191.17}, {"name": "Samvardhana Motherson International Limited", "ticker": "MOTHERSON", "exch": "NSE", "sector": "Automobile", "market": "IN", "currency": "\u20b9", "cap": "Large", "when": "week", "time": "Not specified", "epsEst": 1.03, "revEst": 34403.9, "epsAct": 1.56, "revAct": null, "surprise": 15.6, "promoter": null, "eps4q": [0.57, 0.8, 1.0, 1.56], "spark": [145.22, 143.6, 145.57, 145.55, 148.97, 147.86, 146.0], "rsi": 53.5, "fibLow": 89.83, "fibHigh": 151.45, "fibLevel": 91.2, "fibZoneLabel": "78.6% \u2013 100%", "fibZoneLow": 138.26, "fibZoneHigh": 151.45}, {"name": "Power Grid Corporation of India Limited", "ticker": "POWERGRID", "exch": "NSE", "sector": "Energy", "market": "IN", "currency": "\u20b9", "cap": "Large", "when": "week", "time": "Not specified", "epsEst": 4.1, "revEst": 12392.5, "epsAct": 9.0, "revAct": null, "surprise": 59.3, "promoter": null, "eps4q": [3.7, 3.28, 4.19, 9.0], "spark": [286.7, 289.3, 289.8, 288.2, 288.85, 285.3, 282.85], "rsi": 43.4, "fibLow": 251.23, "fibHigh": 320.9, "fibLevel": 45.4, "fibZoneLabel": "38.2% \u2013 50%", "fibZoneLow": 277.84, "fibZoneHigh": 286.06}, {"name": "GAIL (India) Limited", "ticker": "GAIL", "exch": "NSE", "sector": "Energy", "market": "IN", "currency": "\u20b9", "cap": "Large", "when": "tomorrow", "time": "Not specified", "epsEst": 2.59, "revEst": 39825.1, "epsAct": 1.92, "revAct": null, "surprise": -6.8, "promoter": null, "eps4q": [2.87, 3.37, 2.44, 1.92], "spark": [173.99, 173.01, 171.99, 170.02, 174.23, 175.15, 175.12], "rsi": 56.6, "fibLow": 135.4, "fibHigh": 179.7, "fibLevel": 89.7, "fibZoneLabel": "78.6% \u2013 100%", "fibZoneLow": 170.22, "fibZoneHigh": 179.7}, {"name": "Indian Oil Corporation Limited", "ticker": "IOC", "exch": "NSE", "sector": "Energy", "market": "IN", "currency": "\u20b9", "cap": "Large", "when": "tomorrow", "time": "Not specified", "epsEst": -13.98, "revEst": 232489.3, "epsAct": 8.26, "revAct": null, "surprise": 31.3, "promoter": null, "eps4q": [4.13, 5.53, 8.81, 8.26], "spark": [143.3, 142.03, 139.92, 138.47, 141.52, 141.28, 140.11], "rsi": 48.0, "fibLow": 130.91, "fibHigh": 185.14, "fibLevel": 17.0, "fibZoneLabel": "0% \u2013 23.6%", "fibZoneLow": 130.91, "fibZoneHigh": 143.71}, {"name": "Bharti Airtel Limited", "ticker": "BHARTIARTL", "exch": "NSE", "sector": "Other", "market": "IN", "currency": "\u20b9", "cap": "Large", "when": "week", "time": "Not specified", "epsEst": 13.77, "revEst": 57165.6, "epsAct": 16.98, "revAct": null, "surprise": 33.2, "promoter": null, "eps4q": [9.9, 11.3, 11.5, 16.98], "spark": [1924.18, 1924.78, 1907.0, 1898.2, 1905.3, 1901.8, 1950.2], "rsi": 63.8, "fibLow": 1734.97, "fibHigh": 2135.82, "fibLevel": 53.7, "fibZoneLabel": "50% \u2013 61.8%", "fibZoneLow": 1935.39, "fibZoneHigh": 1982.7}, {"name": "Bajaj Finance Limited", "ticker": "BAJFINANCE", "exch": "NSE", "sector": "Banking", "market": "IN", "currency": "\u20b9", "cap": "Large", "when": "today", "time": "Not specified", "epsEst": 13.7, "revEst": 15745.9, "epsAct": 8.57, "revAct": null, "surprise": -37.4, "promoter": null, "eps4q": [6.82, 8.79, 7.76, 8.57], "spark": [1069.2, 1060.3, 1039.8, 1012.8, 1048.3, 1048.4, 1054.4], "rsi": 60.5, "fibLow": 796.65, "fibHigh": 1087.47, "fibLevel": 88.6, "fibZoneLabel": "78.6% \u2013 100%", "fibZoneLow": 1025.23, "fibZoneHigh": 1087.47}, {"name": "DLF Limited", "ticker": "DLF", "exch": "NSE", "sector": "Other", "market": "IN", "currency": "\u20b9", "cap": "Large", "when": "week", "time": "Not specified", "epsEst": 3.5, "revEst": 1906.4, "epsAct": 5.01, "revAct": null, "surprise": -8.9, "promoter": null, "eps4q": [3.08, 4.07, 5.1, 5.01], "spark": [665.3, 643.42, 634.24, 637.2, 650.9, 663.05, 670.25], "rsi": 59.6, "fibLow": 497.85, "fibHigh": 783.02, "fibLevel": 60.5, "fibZoneLabel": "50% \u2013 61.8%", "fibZoneLow": 640.43, "fibZoneHigh": 674.09}, {"name": "Trent Limited", "ticker": "TRENT", "exch": "NSE", "sector": "Other", "market": "IN", "currency": "\u20b9", "cap": "Large", "when": "week", "time": "Not specified", "epsEst": 11.03, "revEst": 5779.0, "epsAct": 8.53, "revAct": null, "surprise": 22.6, "promoter": null, "eps4q": [7.93, 8.45, 12.38, 8.53], "spark": [2894.7, 2887.3, 2874.8, 2890.5, 2938.3, 2930.7, 3005.2], "rsi": 54.6, "fibLow": 2193.96, "fibHigh": 5520.84, "fibLevel": 24.4, "fibZoneLabel": "23.6% \u2013 38.2%", "fibZoneLow": 2979.1, "fibZoneHigh": 3464.83}, {"name": "Bajaj Finserv Ltd.", "ticker": "BAJAJFINSV", "exch": "NSE", "sector": "Banking", "market": "IN", "currency": "\u20b9", "cap": "Large", "when": "tomorrow", "time": "Not specified", "epsEst": 17.79, "revEst": 39924.2, "epsAct": 15.8, "revAct": null, "surprise": 79.5, "promoter": null, "eps4q": [17.3, 13.9, 15.53, 15.8], "spark": [1900.6, 1876.4, 1889.4, 1876.7, 1913.0, 1927.9, 1924.4], "rsi": 62.5, "fibLow": 1630.41, "fibHigh": 2174.74, "fibLevel": 54.0, "fibZoneLabel": "50% \u2013 61.8%", "fibZoneLow": 1902.57, "fibZoneHigh": 1966.81}, {"name": "Muthoot Finance Limited", "ticker": "MUTHOOTFIN", "exch": "NSE", "sector": "Banking", "market": "IN", "currency": "\u20b9", "cap": "Large", "when": "week", "time": "Not specified", "epsEst": 73.9, "revEst": 5184.8, "epsAct": 76.88, "revAct": null, "surprise": 20.4, "promoter": null, "eps4q": [50.97, 58.42, 66.16, 76.88], "spark": [3079.0, 3035.6, 3010.4, 2986.7, 3025.9, 3014.4, 3017.9], "rsi": 46.4, "fibLow": 2488.86, "fibHigh": 4057.39, "fibLevel": 33.7, "fibZoneLabel": "23.6% \u2013 38.2%", "fibZoneLow": 2859.03, "fibZoneHigh": 3088.04}, {"name": "Pidilite Industries Limited", "ticker": "PIDILITIND", "exch": "NSE", "sector": "Other", "market": "IN", "currency": "\u20b9", "cap": "Large", "when": "week", "time": "Not specified", "epsEst": 7.46, "revEst": 4413.4, "epsAct": 5.74, "revAct": null, "surprise": 5.3, "promoter": null, "eps4q": [6.6, 5.68, 6.1, 5.74], "spark": [1579.92, 1597.1, 1564.2, 1570.9, 1611.3, 1619.6, 1629.9], "rsi": 64.4, "fibLow": 1264.49, "fibHigh": 1629.9, "fibLevel": 100.0, "fibZoneLabel": "78.6% \u2013 100%", "fibZoneLow": 1551.7, "fibZoneHigh": 1629.9}, {"name": "Cummins India Limited", "ticker": "CUMMINSIND", "exch": "NSE", "sector": "Other", "market": "IN", "currency": "\u20b9", "cap": "Large", "when": "week", "time": "Not specified", "epsEst": 21.69, "revEst": 3278.6, "epsAct": 22.56, "revAct": null, "surprise": 10.6, "promoter": null, "eps4q": [20.04, 23.0, 19.84, 22.56], "spark": [5583.0, 5586.0, 5599.0, 5600.5, 5629.5, 5455.5, 5383.0], "rsi": 41.1, "fibLow": 3510.29, "fibHigh": 5977.92, "fibLevel": 75.9, "fibZoneLabel": "61.8% \u2013 78.6%", "fibZoneLow": 5035.29, "fibZoneHigh": 5449.85}, {"name": "Britannia Industries Limited", "ticker": "BRITANNIA", "exch": "NSE", "sector": "FMCG", "market": "IN", "currency": "\u20b9", "cap": "Large", "when": "week", "time": "Not specified", "epsEst": 24.44, "revEst": 4990.6, "epsAct": 28.16, "revAct": null, "surprise": -0.8, "promoter": null, "eps4q": [21.62, 27.17, 28.23, 28.16], "spark": [5482.0, 5485.5, 5388.0, 5379.5, 5384.5, 5478.5, 5517.5], "rsi": 62.7, "fibLow": 5064.0, "fibHigh": 6300.5, "fibLevel": 36.7, "fibZoneLabel": "23.6% \u2013 38.2%", "fibZoneLow": 5355.81, "fibZoneHigh": 5536.34}, {"name": "ABB India Limited", "ticker": "ABB", "exch": "NSE", "sector": "Other", "market": "IN", "currency": "\u20b9", "cap": "Large", "when": "tomorrow", "time": "Not specified", "epsEst": 21.1, "revEst": 3373.8, "epsAct": 16.14, "revAct": null, "surprise": -25.1, "promoter": null, "eps4q": [16.6, 19.31, 20.5, 16.14], "spark": [7532.0, 7506.0, 7528.0, 7375.5, 7327.5, 7243.5, 7310.5], "rsi": 54.1, "fibLow": 4672.39, "fibHigh": 7667.5, "fibLevel": 88.1, "fibZoneLabel": "78.6% \u2013 100%", "fibZoneLow": 7026.55, "fibZoneHigh": 7667.5}, {"name": "Divi's Laboratories Limited", "ticker": "DIVISLAB", "exch": "NSE", "sector": "Pharma", "market": "IN", "currency": "\u20b9", "cap": "Large", "when": "week", "time": "Not specified", "epsEst": 24.68, "revEst": 2760.9, "epsAct": 28.31, "revAct": null, "surprise": 7.1, "promoter": null, "eps4q": [20.49, 25.97, 24.07, 28.31], "spark": [7299.9, 7356.17, 7275.0, 7248.5, 7414.0, 7425.0, 7784.5], "rsi": 79.8, "fibLow": 5666.13, "fibHigh": 7784.5, "fibLevel": 100.0, "fibZoneLabel": "78.6% \u2013 100%", "fibZoneLow": 7331.17, "fibZoneHigh": 7784.5}, {"name": "Siemens Limited", "ticker": "SIEMENS", "exch": "NSE", "sector": "Other", "market": "IN", "currency": "\u20b9", "cap": "Large", "when": "week", "time": "Not specified", "epsEst": 10.74, "revEst": 4620.2, "epsAct": 10.4, "revAct": null, "surprise": -10.2, "promoter": null, "eps4q": [11.89, 11.78, 9.13, 10.4], "spark": [3649.86, 3631.55, 3668.27, 3671.76, 3699.82, 3663.0, 3650.8], "rsi": 54.4, "fibLow": 2834.67, "fibHigh": 3859.73, "fibLevel": 79.6, "fibZoneLabel": "78.6% \u2013 100%", "fibZoneLow": 3640.37, "fibZoneHigh": 3859.73}, {"name": "Solar Industries India Limited", "ticker": "SOLARINDS", "exch": "NSE", "sector": "Other", "market": "IN", "currency": "\u20b9", "cap": "Large", "when": "week", "time": "Not specified", "epsEst": 58.86, "revEst": 3097.5, "epsAct": 60.52, "revAct": null, "surprise": 2.5, "promoter": null, "eps4q": [37.43, 38.12, 49.31, 60.52], "spark": [19033.75, 18844.87, 18610.0, 18483.08, 18617.0, 18244.0, 18080.0], "rsi": 46.8, "fibLow": 11765.05, "fibHigh": 19033.75, "fibLevel": 86.9, "fibZoneLabel": "78.6% \u2013 100%", "fibZoneLow": 17478.25, "fibZoneHigh": 19033.75}, {"name": "Bajaj Holdings & Investment Limited", "ticker": "BAJAJHLDNG", "exch": "NSE", "sector": "Banking", "market": "IN", "currency": "\u20b9", "cap": "Large", "when": "tomorrow", "time": "Not specified", "epsEst": NaN, "revEst": null, "epsAct": 68.7, "revAct": null, "surprise": -13.8, "promoter": null, "eps4q": [37.39, 12.33, 75.0, 68.7], "spark": [10446.0, 10425.0, 10636.0, 10679.0, 10810.0, 10831.0, 10949.0], "rsi": 62.0, "fibLow": 8638.66, "fibHigh": 14274.15, "fibLevel": 41.0, "fibZoneLabel": "38.2% \u2013 50%", "fibZoneLow": 10791.42, "fibZoneHigh": 11456.4}, {"name": "Shree Cement Limited", "ticker": "SHREECEM", "exch": "NSE", "sector": "Other", "market": "IN", "currency": "\u20b9", "cap": "Large", "when": "tomorrow", "time": "Not specified", "epsEst": 136.81, "revEst": 5649.4, "epsAct": 147.45, "revAct": null, "surprise": 12.6, "promoter": null, "eps4q": [171.42, 76.81, 77.22, 147.45], "spark": [27245.0, 26720.0, 26825.0, 26740.0, 26860.0, 26875.0, 26825.0], "rsi": 57.5, "fibLow": 22666.08, "fibHigh": 31170.42, "fibLevel": 48.9, "fibZoneLabel": "38.2% \u2013 50%", "fibZoneLow": 25914.74, "fibZoneHigh": 26918.25}],
+    indexes: [{"n": "NIFTY 50", "v": "24,250.20", "chg": "+1.10%", "up": true}, {"n": "SENSEX", "v": "77,654.60", "chg": "+1.16%", "up": true}, {"n": "BANK NIFTY", "v": "57,205.90", "chg": "+0.79%", "up": true}],
+    exch: ['ALL','NSE','BSE'],
+    currencyNote: '₹ Cr (crore)',
+  },
+  US: {
+    label: 'USA',
+    sectors: {"XLK": "#4C8DFF", "XLC": "#8B5CF6", "XLY": "#F0554A", "XLP": "#34D399", "XLV": "#2DD4BF", "XLF": "#22C55E", "XLI": "#F5A524", "XLE": "#EAB308", "XLB": "#C1440E", "XLRE": "#FB923C", "XLU": "#60A5FA", "Other": "#8B96A6"},
+    sectorNames: {"XLK": "Technology", "XLC": "Communication Services", "XLY": "Consumer Discretionary", "XLP": "Consumer Staples", "XLV": "Health Care", "XLF": "Financials", "XLI": "Industrials", "XLE": "Energy", "XLB": "Materials", "XLRE": "Real Estate", "XLU": "Utilities", "Other": "Other"},
+    companies: [{"name": "Advanced Micro Devices, Inc.", "ticker": "AMD", "exch": "NASDAQ", "sector": "XLK", "market": "US", "currency": "$", "cap": "Large", "when": "week", "time": "Not specified", "epsEst": 1.61, "revEst": 11300.0, "epsAct": 1.37, "revAct": null, "surprise": 6.2, "promoter": null, "eps4q": [0.48, 1.2, 1.53, 1.37], "spark": [552.33, 539.69, 521.95, 494.95, 454.62, 429.56, 485.39], "rsi": 46.5, "fibLow": 151.14, "fibHigh": 580.91, "fibLevel": 77.8, "fibZoneLabel": "61.8% \u2013 78.6%", "fibZoneLow": 416.74, "fibZoneHigh": 488.94}, {"name": "The Walt Disney Company", "ticker": "DIS", "exch": "NYSE", "sector": "XLC", "market": "US", "currency": "$", "cap": "Large", "when": "week", "time": "Not specified", "epsEst": 1.85, "revEst": 25415.5, "epsAct": 1.57, "revAct": null, "surprise": 4.7, "promoter": null, "eps4q": [1.61, 1.11, 1.63, 1.57], "spark": [95.87, 92.83, 94.85, 96.65, 98.89, 98.48, 96.16], "rsi": 46.6, "fibLow": 91.72, "fibHigh": 117.65, "fibLevel": 17.1, "fibZoneLabel": "0% \u2013 23.6%", "fibZoneLow": 91.72, "fibZoneHigh": 97.84}, {"name": "Spotify Technology S.A.", "ticker": "SPOT", "exch": "NYSE", "sector": "XLC", "market": "US", "currency": "$", "cap": "Large", "when": "week", "time": "Not specified", "epsEst": 2.75, "revEst": 4792.9, "epsAct": 3.45, "revAct": null, "surprise": 17.3, "promoter": null, "eps4q": [-0.42, 3.28, 4.43, 3.45], "spark": [474.16, 468.99, 482.66, 494.72, 511.56, 524.01, 522.61], "rsi": 65.4, "fibLow": 412.75, "fibHigh": 738.53, "fibLevel": 33.7, "fibZoneLabel": "23.6% \u2013 38.2%", "fibZoneLow": 489.63, "fibZoneHigh": 537.2}, {"name": "Roblox Corporation", "ticker": "RBLX", "exch": "NYSE", "sector": "XLC", "market": "US", "currency": "$", "cap": "Large", "when": "today", "time": "Not specified", "epsEst": -0.33, "revEst": 1596.5, "epsAct": -0.35, "revAct": null, "surprise": 12.5, "promoter": null, "eps4q": [-0.41, -0.37, -0.45, -0.35], "spark": [49.64, 47.55, 47.55, 48.42, 49.5, 50.13, 48.67], "rsi": 44.4, "fibLow": 41.31, "fibHigh": 141.56, "fibLevel": 7.3, "fibZoneLabel": "0% \u2013 23.6%", "fibZoneLow": 41.31, "fibZoneHigh": 64.97}, {"name": "McDonald's Corporation", "ticker": "MCD", "exch": "NYSE", "sector": "XLY", "market": "US", "currency": "$", "cap": "Large", "when": "week", "time": "Not specified", "epsEst": 3.32, "revEst": 7126.8, "epsAct": 2.83, "revAct": null, "surprise": 3.3, "promoter": null, "eps4q": [3.19, 3.22, 3.12, 2.83], "spark": [263.57, 262.8, 264.76, 270.67, 273.02, 271.52, 268.44], "rsi": 46.3, "fibLow": 262.8, "fibHigh": 336.88, "fibLevel": 7.6, "fibZoneLabel": "0% \u2013 23.6%", "fibZoneLow": 262.8, "fibZoneHigh": 280.28}, {"name": "Booking Holdings Inc.", "ticker": "BKNG", "exch": "NASDAQ", "sector": "XLY", "market": "US", "currency": "$", "cap": "Large", "when": "week", "time": "Not specified", "epsEst": 2.44, "revEst": 7186.4, "epsAct": 1.14, "revAct": null, "surprise": 5.6, "promoter": null, "eps4q": [2.22, 3.98, 1.95, 1.14], "spark": [177.86, 172.83, 177.46, 186.79, 199.31, 201.3, 193.24], "rsi": 60.4, "fibLow": 153.74, "fibHigh": 226.92, "fibLevel": 54.0, "fibZoneLabel": "50% \u2013 61.8%", "fibZoneLow": 190.33, "fibZoneHigh": 198.97}, {"name": "Marriott International, Inc.", "ticker": "MAR", "exch": "NASDAQ", "sector": "XLY", "market": "US", "currency": "$", "cap": "Large", "when": "week", "time": "Not specified", "epsEst": 3.08, "revEst": 7192.6, "epsAct": 2.72, "revAct": null, "surprise": 6.7, "promoter": null, "eps4q": [2.65, 2.47, 2.58, 2.72], "spark": [369.8, 364.47, 374.43, 383.06, 383.52, 381.12, 375.48], "rsi": 50.6, "fibLow": 253.11, "fibHigh": 402.54, "fibLevel": 81.9, "fibZoneLabel": "78.6% \u2013 100%", "fibZoneLow": 370.56, "fibZoneHigh": 402.54}, {"name": "eBay Inc.", "ticker": "EBAY", "exch": "NASDAQ", "sector": "XLY", "market": "US", "currency": "$", "cap": "Large", "when": "week", "time": "Not specified", "epsEst": 1.51, "revEst": 3016.3, "epsAct": 1.66, "revAct": null, "surprise": 5.1, "promoter": null, "eps4q": [1.37, 1.36, 1.41, 1.66], "spark": [110.95, 109.32, 109.39, 113.21, 117.44, 115.3, 113.52], "rsi": 52.3, "fibLow": 78.93, "fibHigh": 118.63, "fibLevel": 87.1, "fibZoneLabel": "78.6% \u2013 100%", "fibZoneLow": 110.13, "fibZoneHigh": 118.63}, {"name": "Altria Group, Inc.", "ticker": "MO", "exch": "NYSE", "sector": "XLP", "market": "US", "currency": "$", "cap": "Large", "when": "today", "time": "Not specified", "epsEst": 1.5, "revEst": 5325.7, "epsAct": 1.48, "revAct": null, "surprise": -1.3, "promoter": null, "eps4q": [1.45, 1.3, 1.32, 1.48], "spark": [72.17, 72.08, 72.99, 72.89, 74.82, 74.92, 67.94], "rsi": 37.6, "fibLow": 53.03, "fibHigh": 74.92, "fibLevel": 68.1, "fibZoneLabel": "61.8% \u2013 78.6%", "fibZoneLow": 66.56, "fibZoneHigh": 70.24}, {"name": "Colgate-Palmolive Company", "ticker": "CL", "exch": "NYSE", "sector": "XLP", "market": "US", "currency": "$", "cap": "Large", "when": "tomorrow", "time": "Not specified", "epsEst": 0.95, "revEst": 5357.7, "epsAct": 0.97, "revAct": null, "surprise": 3.2, "promoter": null, "eps4q": [0.92, 0.91, 0.95, 0.97], "spark": [91.63, 90.08, 90.75, 91.98, 92.73, 93.49, 91.6], "rsi": 50.6, "fibLow": 73.64, "fibHigh": 97.97, "fibLevel": 73.8, "fibZoneLabel": "61.8% \u2013 78.6%", "fibZoneLow": 88.68, "fibZoneHigh": 92.76}, {"name": "Monster Beverage Corporation", "ticker": "MNST", "exch": "NASDAQ", "sector": "XLP", "market": "US", "currency": "$", "cap": "Large", "when": "week", "time": "Not specified", "epsEst": 0.58, "revEst": 2429.1, "epsAct": 0.58, "revAct": null, "surprise": 9.4, "promoter": null, "eps4q": [0.5, 0.53, 0.46, 0.58], "spark": [95.67, 93.56, 93.49, 95.33, 97.74, 97.23, 97.65], "rsi": 57.5, "fibLow": 58.75, "fibHigh": 99.94, "fibLevel": 94.4, "fibZoneLabel": "78.6% \u2013 100%", "fibZoneLow": 91.13, "fibZoneHigh": 99.94}, {"name": "Eli Lilly and Company", "ticker": "LLY", "exch": "NYSE", "sector": "XLV", "market": "US", "currency": "$", "cap": "Large", "when": "week", "time": "Not specified", "epsEst": 6.55, "revEst": 20686.3, "epsAct": 8.55, "revAct": null, "surprise": 25.9, "promoter": null, "eps4q": [6.31, 7.02, 7.54, 8.55], "spark": [1163.01, 1185.87, 1196.03, 1197.53, 1220.66, 1210.02, 1154.97], "rsi": 46.9, "fibLow": 621.26, "fibHigh": 1235.56, "fibLevel": 86.9, "fibZoneLabel": "78.6% \u2013 100%", "fibZoneLow": 1104.1, "fibZoneHigh": 1235.56}, {"name": "Merck & Co., Inc.", "ticker": "MRK", "exch": "NYSE", "sector": "XLV", "market": "US", "currency": "$", "cap": "Large", "when": "week", "time": "Not specified", "epsEst": -0.26, "revEst": 16365.7, "epsAct": -1.28, "revAct": null, "surprise": 12.9, "promoter": null, "eps4q": [2.13, 2.58, 2.04, -1.28], "spark": [127.47, 130.48, 131.07, 130.76, 131.82, 130.36, 129.79], "rsi": 58.0, "fibLow": 75.59, "fibHigh": 131.82, "fibLevel": 96.4, "fibZoneLabel": "78.6% \u2013 100%", "fibZoneLow": 119.79, "fibZoneHigh": 131.82}, {"name": "AbbVie Inc.", "ticker": "ABBV", "exch": "NYSE", "sector": "XLV", "market": "US", "currency": "$", "cap": "Large", "when": "tomorrow", "time": "Not specified", "epsEst": 3.61, "revEst": 16762.3, "epsAct": 2.65, "revAct": null, "surprise": -0.7, "promoter": null, "eps4q": [2.97, 1.86, 2.71, 2.65], "spark": [253.3, 256.92, 259.36, 256.91, 263.2, 263.3, 257.41], "rsi": 59.7, "fibLow": 183.33, "fibHigh": 263.3, "fibLevel": 92.6, "fibZoneLabel": "78.6% \u2013 100%", "fibZoneLow": 246.19, "fibZoneHigh": 263.3}, {"name": "Amgen Inc.", "ticker": "AMGN", "exch": "NASDAQ", "sector": "XLV", "market": "US", "currency": "$", "cap": "Large", "when": "week", "time": "Not specified", "epsEst": 5.62, "revEst": 9423.0, "epsAct": 5.15, "revAct": null, "surprise": 8.0, "promoter": null, "eps4q": [6.02, 5.64, 5.29, 5.15], "spark": [366.05, 371.5, 376.04, 376.26, 393.1, 387.64, 387.64], "rsi": 67.4, "fibLow": 265.4, "fibHigh": 393.1, "fibLevel": 95.7, "fibZoneLabel": "78.6% \u2013 100%", "fibZoneLow": 365.77, "fibZoneHigh": 393.1}, {"name": "Bristol-Myers Squibb Company", "ticker": "BMY", "exch": "NYSE", "sector": "XLV", "market": "US", "currency": "$", "cap": "Large", "when": "today", "time": "Not specified", "epsEst": 1.6, "revEst": 12044.8, "epsAct": 2.04, "revAct": null, "surprise": 27.5, "promoter": null, "eps4q": [1.63, 1.26, 1.58, 2.04], "spark": [60.76, 61.51, 62.09, 62.56, 63.6, 63.1, 64.86], "rsi": 70.3, "fibLow": 41.21, "fibHigh": 64.86, "fibLevel": 100.0, "fibZoneLabel": "78.6% \u2013 100%", "fibZoneLow": 59.8, "fibZoneHigh": 64.86}, {"name": "Gilead Sciences, Inc.", "ticker": "GILD", "exch": "NASDAQ", "sector": "XLV", "market": "US", "currency": "$", "cap": "Large", "when": "week", "time": "Not specified", "epsEst": -7.24, "revEst": 7395.1, "epsAct": 2.03, "revAct": null, "surprise": 6.3, "promoter": null, "eps4q": [2.01, 2.47, 1.86, 2.03], "spark": [130.34, 130.86, 129.31, 130.52, 134.32, 132.73, 131.28], "rsi": 50.7, "fibLow": 107.48, "fibHigh": 153.91, "fibLevel": 51.3, "fibZoneLabel": "50% \u2013 61.8%", "fibZoneLow": 130.69, "fibZoneHigh": 136.17}, {"name": "Vertex Pharmaceuticals Incorporated", "ticker": "VRTX", "exch": "NASDAQ", "sector": "XLV", "market": "US", "currency": "$", "cap": "Large", "when": "week", "time": "Not specified", "epsEst": 4.74, "revEst": 3224.7, "epsAct": 4.47, "revAct": null, "surprise": 3.7, "promoter": null, "eps4q": [4.52, 4.8, 5.03, 4.47], "spark": [472.57, 473.09, 477.36, 479.0, 490.39, 483.33, 481.7], "rsi": 51.1, "fibLow": 366.54, "fibHigh": 529.59, "fibLevel": 70.6, "fibZoneLabel": "61.8% \u2013 78.6%", "fibZoneLow": 467.3, "fibZoneHigh": 494.7}, {"name": "CVS Health Corporation", "ticker": "CVS", "exch": "NYSE", "sector": "XLV", "market": "US", "currency": "$", "cap": "Large", "when": "week", "time": "Not specified", "epsEst": 1.85, "revEst": 100087.4, "epsAct": 2.57, "revAct": null, "surprise": 16.3, "promoter": null, "eps4q": [1.81, 1.6, 1.09, 2.57], "spark": [107.42, 106.89, 107.74, 107.07, 109.34, 105.92, 105.22], "rsi": 52.5, "fibLow": 59.56, "fibHigh": 109.92, "fibLevel": 90.7, "fibZoneLabel": "78.6% \u2013 100%", "fibZoneLow": 99.14, "fibZoneHigh": 109.92}, {"name": "The Cigna Group", "ticker": "CI", "exch": "NYSE", "sector": "XLV", "market": "US", "currency": "$", "cap": "Large", "when": "today", "time": "Not specified", "epsEst": 7.6, "revEst": 71901.5, "epsAct": 7.78, "revAct": null, "surprise": 2.4, "promoter": null, "eps4q": [7.83, 8.08, 7.79, 7.78], "spark": [284.85, 286.29, 289.57, 291.02, 301.06, 296.47, 287.66], "rsi": 48.9, "fibLow": 240.32, "fibHigh": 305.8, "fibLevel": 72.3, "fibZoneLabel": "61.8% \u2013 78.6%", "fibZoneLow": 280.79, "fibZoneHigh": 291.79}, {"name": "Stryker Corporation", "ticker": "SYK", "exch": "NYSE", "sector": "XLV", "market": "US", "currency": "$", "cap": "Large", "when": "today", "time": "Not specified", "epsEst": 3.49, "revEst": 6719.2, "epsAct": 3.69, "revAct": null, "surprise": 5.7, "promoter": null, "eps4q": [3.19, 4.47, 2.6, 3.69], "spark": [309.24, 318.97, 330.25, 336.74, 346.6, 352.25, 348.04], "rsi": 62.6, "fibLow": 281.83, "fibHigh": 390.37, "fibLevel": 61.0, "fibZoneLabel": "50% \u2013 61.8%", "fibZoneLow": 336.1, "fibZoneHigh": 348.91}, {"name": "Regeneron Pharmaceuticals, Inc.", "ticker": "REGN", "exch": "NASDAQ", "sector": "XLV", "market": "US", "currency": "$", "cap": "Large", "when": "today", "time": "Not specified", "epsEst": 10.21, "revEst": 4464.6, "epsAct": 14.29, "revAct": null, "surprise": 40.0, "promoter": null, "eps4q": [11.83, 11.44, 9.47, 14.29], "spark": [651.18, 651.91, 656.01, 667.17, 695.18, 695.42, 738.34], "rsi": 74.5, "fibLow": 542.49, "fibHigh": 810.08, "fibLevel": 73.2, "fibZoneLabel": "61.8% \u2013 78.6%", "fibZoneLow": 707.86, "fibZoneHigh": 752.82}, {"name": "Mastercard Incorporated", "ticker": "MA", "exch": "NYSE", "sector": "XLF", "market": "US", "currency": "$", "cap": "Large", "when": "today", "time": "Not specified", "epsEst": 4.78, "revEst": 9635.7, "epsAct": 5.04, "revAct": null, "surprise": 5.4, "promoter": null, "eps4q": [4.38, 4.76, 4.6, 5.04], "spark": [531.98, 530.29, 539.66, 551.71, 562.75, 563.32, 577.35], "rsi": 72.4, "fibLow": 470.76, "fibHigh": 595.25, "fibLevel": 85.6, "fibZoneLabel": "78.6% \u2013 100%", "fibZoneLow": 568.61, "fibZoneHigh": 595.25}, {"name": "Caterpillar Inc.", "ticker": "CAT", "exch": "NYSE", "sector": "XLI", "market": "US", "currency": "$", "cap": "Large", "when": "week", "time": "Not specified", "epsEst": 6.2, "revEst": 19174.8, "epsAct": 5.54, "revAct": null, "surprise": 19.4, "promoter": null, "eps4q": [4.72, 4.95, 5.16, 5.54], "spark": [889.31, 894.54, 888.73, 873.28, 840.85, 782.71, 809.14], "rsi": 35.1, "fibLow": 404.15, "fibHigh": 1062.93, "fibLevel": 61.5, "fibZoneLabel": "50% \u2013 61.8%", "fibZoneLow": 733.54, "fibZoneHigh": 811.28}, {"name": "Eaton Corporation plc", "ticker": "ETN", "exch": "NYSE", "sector": "XLI", "market": "US", "currency": "$", "cap": "Large", "when": "tomorrow", "time": "Not specified", "epsEst": 3.08, "revEst": 8155.1, "epsAct": 2.81, "revAct": null, "surprise": 2.9, "promoter": null, "eps4q": [2.95, 3.07, 3.33, 2.81], "spark": [406.91, 415.13, 404.07, 398.64, 386.26, 361.88, 386.89], "rsi": 45.3, "fibLow": 313.97, "fibHigh": 435.78, "fibLevel": 59.9, "fibZoneLabel": "50% \u2013 61.8%", "fibZoneLow": 374.88, "fibZoneHigh": 389.25}, {"name": "ExxonMobil Holdings Corporation", "ticker": "XOM", "exch": "NYSE", "sector": "XLE", "market": "US", "currency": "$", "cap": "Large", "when": "tomorrow", "time": "Not specified", "epsEst": 3.63, "revEst": 97656.9, "epsAct": 1.16, "revAct": null, "surprise": 14.9, "promoter": null, "eps4q": [1.64, 1.88, 1.71, 1.16], "spark": [154.45, 156.89, 156.94, 154.77, 153.04, 156.75, 156.97], "rsi": 67.2, "fibLow": 102.56, "fibHigh": 170.31, "fibLevel": 80.3, "fibZoneLabel": "78.6% \u2013 100%", "fibZoneLow": 155.81, "fibZoneHigh": 170.31}, {"name": "Chevron Corporation", "ticker": "CVX", "exch": "NYSE", "sector": "XLE", "market": "US", "currency": "$", "cap": "Large", "when": "tomorrow", "time": "Not specified", "epsEst": 5.57, "revEst": 60380.6, "epsAct": 1.41, "revAct": null, "surprise": 45.4, "promoter": null, "eps4q": [1.77, 1.85, 1.52, 1.41], "spark": [192.98, 194.42, 194.79, 190.0, 187.58, 191.86, 192.31], "rsi": 62.2, "fibLow": 144.01, "fibHigh": 209.23, "fibLevel": 74.1, "fibZoneLabel": "61.8% \u2013 78.6%", "fibZoneLow": 184.32, "fibZoneHigh": 195.27}, {"name": "ConocoPhillips", "ticker": "COP", "exch": "NYSE", "sector": "XLE", "market": "US", "currency": "$", "cap": "Large", "when": "week", "time": "Not specified", "epsEst": 2.89, "revEst": 19830.1, "epsAct": 1.89, "revAct": null, "surprise": 11.8, "promoter": null, "eps4q": [1.42, 1.61, 1.02, 1.89], "spark": [118.79, 120.2, 120.26, 115.58, 114.1, 118.06, 119.03], "rsi": 59.8, "fibLow": 83.6, "fibHigh": 132.81, "fibLevel": 72.0, "fibZoneLabel": "61.8% \u2013 78.6%", "fibZoneLow": 114.01, "fibZoneHigh": 122.28}, {"name": "The Southern Company", "ticker": "SO", "exch": "NYSE", "sector": "XLE", "market": "US", "currency": "$", "cap": "Large", "when": "today", "time": "Not specified", "epsEst": 1.01, "revEst": 8660.1, "epsAct": 1.13, "revAct": null, "surprise": 11.9, "promoter": null, "eps4q": [1.6, 0.55, 1.32, 1.13], "spark": [95.8, 96.6, 97.25, 96.48, 96.78, 96.05, 94.34], "rsi": 45.6, "fibLow": 82.74, "fibHigh": 98.3, "fibLevel": 74.6, "fibZoneLabel": "61.8% \u2013 78.6%", "fibZoneLow": 92.36, "fibZoneHigh": 94.97}, {"name": "Duke Energy Corporation", "ticker": "DUK", "exch": "NYSE", "sector": "XLE", "market": "US", "currency": "$", "cap": "Large", "when": "week", "time": "Not specified", "epsEst": 1.31, "revEst": 7680.1, "epsAct": 1.93, "revAct": null, "surprise": 7.2, "promoter": null, "eps4q": [1.25, 1.81, 1.5, 1.93], "spark": [127.95, 129.26, 130.52, 128.83, 129.24, 129.08, 126.27], "rsi": 48.1, "fibLow": 112.07, "fibHigh": 132.32, "fibLevel": 70.1, "fibZoneLabel": "61.8% \u2013 78.6%", "fibZoneLow": 124.58, "fibZoneHigh": 127.99}, {"name": "Constellation Energy Corporation", "ticker": "CEG", "exch": "NASDAQ", "sector": "XLE", "market": "US", "currency": "$", "cap": "Large", "when": "week", "time": "Not specified", "epsEst": 2.4, "revEst": 7789.0, "epsAct": 2.74, "revAct": null, "surprise": 5.4, "promoter": null, "eps4q": [1.91, 3.04, 2.3, 2.74], "spark": [274.9, 275.6, 274.35, 270.0, 259.82, 257.95, 263.56], "rsi": 51.6, "fibLow": 236.5, "fibHigh": 402.32, "fibLevel": 16.3, "fibZoneLabel": "0% \u2013 23.6%", "fibZoneLow": 236.5, "fibZoneHigh": 275.63}, {"name": "EOG Resources, Inc.", "ticker": "EOG", "exch": "NYSE", "sector": "XLE", "market": "US", "currency": "$", "cap": "Large", "when": "week", "time": "Not specified", "epsEst": 4.99, "revEst": 7988.5, "epsAct": 3.41, "revAct": null, "surprise": 6.2, "promoter": null, "eps4q": [2.32, 2.71, 2.27, 3.41], "spark": [144.0, 145.49, 146.39, 140.31, 139.64, 145.94, 145.51], "rsi": 61.3, "fibLow": 99.31, "fibHigh": 147.64, "fibLevel": 95.6, "fibZoneLabel": "78.6% \u2013 100%", "fibZoneLow": 137.3, "fibZoneHigh": 147.64}, {"name": "Phillips 66", "ticker": "PSX", "exch": "NYSE", "sector": "XLE", "market": "US", "currency": "$", "cap": "Large", "when": "week", "time": "Not specified", "epsEst": 7.5, "revEst": 44041.4, "epsAct": 0.49, "revAct": null, "surprise": 225.6, "promoter": null, "eps4q": [2.38, 2.52, 2.47, 0.49], "spark": [211.41, 206.98, 206.77, 207.82, 205.85, 206.81, 210.6], "rsi": 68.9, "fibLow": 114.45, "fibHigh": 212.27, "fibLevel": 98.3, "fibZoneLabel": "78.6% \u2013 100%", "fibZoneLow": 191.34, "fibZoneHigh": 212.27}, {"name": "Linde plc", "ticker": "LIN", "exch": "NASDAQ", "sector": "XLB", "market": "US", "currency": "$", "cap": "Large", "when": "tomorrow", "time": "Not specified", "epsEst": 4.39, "revEst": 9014.8, "epsAct": 4.33, "revAct": null, "surprise": 1.4, "promoter": null, "eps4q": [4.09, 4.21, 4.2, 4.33], "spark": [508.67, 506.32, 512.28, 507.02, 511.18, 511.17, 508.64], "rsi": 45.0, "fibLow": 386.85, "fibHigh": 546.64, "fibLevel": 76.2, "fibZoneLabel": "61.8% \u2013 78.6%", "fibZoneLow": 485.6, "fibZoneHigh": 512.44}, {"name": "Air Products and Chemicals, Inc.", "ticker": "APD", "exch": "NYSE", "sector": "XLB", "market": "US", "currency": "$", "cap": "Large", "when": "today", "time": "Not specified", "epsEst": 3.34, "revEst": 3351.9, "epsAct": 3.47, "revAct": null, "surprise": 3.9, "promoter": null, "eps4q": [3.39, 3.16, 3.2, 3.47], "spark": [297.0, 294.29, 297.87, 292.58, 292.85, 294.27, 300.2], "rsi": 56.8, "fibLow": 226.25, "fibHigh": 314.19, "fibLevel": 84.1, "fibZoneLabel": "78.6% \u2013 100%", "fibZoneLow": 295.37, "fibZoneHigh": 314.19}, {"name": "Realty Income Corporation", "ticker": "O", "exch": "NYSE", "sector": "XLRE", "market": "US", "currency": "$", "cap": "Large", "when": "week", "time": "Not specified", "epsEst": 0.42, "revEst": 1430.8, "epsAct": 0.34, "revAct": null, "surprise": -19.0, "promoter": null, "eps4q": [0.22, 0.36, 0.33, 0.34], "spark": [65.03, 64.72, 65.6, 65.5, 65.73, 65.54, 64.43], "rsi": 52.7, "fibLow": 53.18, "fibHigh": 66.39, "fibLevel": 85.2, "fibZoneLabel": "78.6% \u2013 100%", "fibZoneLow": 63.56, "fibZoneHigh": 66.39}, {"name": "Exelon Corporation", "ticker": "EXC", "exch": "NASDAQ", "sector": "XLU", "market": "US", "currency": "$", "cap": "Large", "when": "today", "time": "Not specified", "epsEst": 0.45, "revEst": 7001.9, "epsAct": 0.43, "revAct": null, "surprise": -4.4, "promoter": null, "eps4q": [0.86, 0.59, 0.91, 0.43], "spark": [46.7, 47.28, 47.53, 47.15, 47.31, 47.03, 45.58], "rsi": 42.9, "fibLow": 41.61, "fibHigh": 49.82, "fibLevel": 48.4, "fibZoneLabel": "38.2% \u2013 50%", "fibZoneLow": 44.75, "fibZoneHigh": 45.72}, {"name": "Xcel Energy Inc.", "ticker": "XEL", "exch": "NASDAQ", "sector": "XLU", "market": "US", "currency": "$", "cap": "Large", "when": "today", "time": "Not specified", "epsEst": 0.79, "revEst": 4509.6, "epsAct": 0.93, "revAct": null, "surprise": 17.7, "promoter": null, "eps4q": [1.24, 0.96, 0.91, 0.93], "spark": [80.19, 80.77, 81.67, 80.71, 80.33, 78.75, 78.23], "rsi": 42.9, "fibLow": 69.6, "fibHigh": 82.67, "fibLevel": 66.0, "fibZoneLabel": "61.8% \u2013 78.6%", "fibZoneLow": 77.68, "fibZoneHigh": 79.87}, {"name": "American Electric Power Company, Inc.", "ticker": "AEP", "exch": "NASDAQ", "sector": "XLU", "market": "US", "currency": "$", "cap": "Large", "when": "today", "time": "Not specified", "epsEst": 1.48, "revEst": 6552.0, "epsAct": 1.36, "revAct": null, "surprise": -8.1, "promoter": null, "eps4q": [1.8, 1.19, 1.64, 1.36], "spark": [133.07, 134.92, 135.54, 133.59, 133.02, 129.4, 127.78], "rsi": 37.9, "fibLow": 104.02, "fibHigh": 138.69, "fibLevel": 68.5, "fibZoneLabel": "61.8% \u2013 78.6%", "fibZoneLow": 125.45, "fibZoneHigh": 131.27}, {"name": "Sempra", "ticker": "SRE", "exch": "NYSE", "sector": "XLU", "market": "US", "currency": "$", "cap": "Large", "when": "week", "time": "Not specified", "epsEst": 1.06, "revEst": 3138.2, "epsAct": 1.51, "revAct": null, "surprise": 0.0, "promoter": null, "eps4q": [0.89, 1.11, 1.28, 1.51], "spark": [93.05, 93.44, 92.98, 91.25, 90.56, 88.82, 89.58], "rsi": 40.6, "fibLow": 77.18, "fibHigh": 99.04, "fibLevel": 56.7, "fibZoneLabel": "50% \u2013 61.8%", "fibZoneLow": 88.11, "fibZoneHigh": 90.69}, {"name": "Dominion Energy, Inc.", "ticker": "D", "exch": "NYSE", "sector": "XLU", "market": "US", "currency": "$", "cap": "Large", "when": "tomorrow", "time": "Not specified", "epsEst": 0.68, "revEst": 4088.4, "epsAct": 0.95, "revAct": null, "surprise": 4.4, "promoter": null, "eps4q": [0.75, 1.06, 0.68, 0.95], "spark": [71.09, 71.46, 71.1, 70.27, 70.62, 70.55, 69.73], "rsi": 49.6, "fibLow": 55.92, "fibHigh": 71.69, "fibLevel": 87.6, "fibZoneLabel": "78.6% \u2013 100%", "fibZoneLow": 68.32, "fibZoneHigh": 71.69}, {"name": "Public Service Enterprise Group Incorporated", "ticker": "PEG", "exch": "NYSE", "sector": "XLU", "market": "US", "currency": "$", "cap": "Large", "when": "week", "time": "Not specified", "epsEst": 0.8, "revEst": 2802.8, "epsAct": 1.55, "revAct": null, "surprise": 8.4, "promoter": null, "eps4q": [0.77, 1.13, 0.72, 1.55], "spark": [79.58, 79.77, 79.81, 79.21, 78.95, 77.75, 77.55], "rsi": 39.5, "fibLow": 75.78, "fibHigh": 87.26, "fibLevel": 15.4, "fibZoneLabel": "0% \u2013 23.6%", "fibZoneLow": 75.78, "fibZoneHigh": 78.49}],
+    indexes: [{"n": "S&P 500", "v": "7,437.63", "chg": "+1.66%", "up": true}, {"n": "NASDAQ", "v": "25,122.18", "chg": "+2.78%", "up": true}, {"n": "DOW JONES", "v": "52,208.06", "chg": "+1.19%", "up": true}],
+    exch: ['ALL','NASDAQ','NYSE'],
+    currencyNote: '$ (USD)',
+  },
+};
+let state = { market:'IN', search:'', exch:'ALL', date:'week', sectors:new Set(), watchlist:new Set() };
+
+function formatMoney(num, currency){
+  if(num === null || num === undefined) return null;
+  if(currency === '$'){
+    const isNeg = num < 0; const abs = Math.abs(num);
+    const val = abs >= 1000 ? (abs/1000).toFixed(2) + 'B' : abs.toFixed(0) + 'M';
+    return (isNeg?'-':'') + '$' + val;
+  }
+  const isNeg = num < 0; num = Math.abs(num);
+  let s = num.toFixed(0);
+  let last3 = s.slice(-3);
+  let rest = s.slice(0,-3);
+  if(rest !== '') last3 = ',' + last3;
+  rest = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ',');
+  return (isNeg?'-':'') + '₹' + rest + last3 + ' Cr';
+}
+
+function currentMarket(){ return MARKETS[state.market]; }
+
+function renderTicker(){
+  const items = currentMarket().indexes.map(i => `<span class="tick-item ${i.up?'up':'down'}"><b>${i.n}</b> ${i.v} ${i.chg}</span>`).join('');
+  document.getElementById('tickerTrack').innerHTML = items + items;
+}
+
+function renderChips(){
+  const wrap = document.getElementById('sectorChips');
+  const m = currentMarket();
+  const label = (key) => (m.sectorNames && m.sectorNames[key]) ? m.sectorNames[key] : key;
+  const allChip = `<button class="chip ${state.sectors.size===0?'active':''}" data-sector="__all">All sectors</button>`;
+  const chips = Object.entries(m.sectors).map(([key,color])=>{
+    const active = state.sectors.has(key);
+    return `<button class="chip ${active?'active':''}" data-sector="${key}" style="${active?`color:${color};`:''}"><span class="dot" style="background:${color}"></span>${label(key)}</button>`;
+  }).join('');
+  wrap.innerHTML = allChip + chips;
+  wrap.querySelectorAll('.chip').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const s = btn.dataset.sector;
+      if(s === '__all'){ state.sectors.clear(); }
+      else{ if(state.sectors.has(s)) state.sectors.delete(s); else state.sectors.add(s); }
+      renderChips(); renderAll();
+    });
+  });
+}
+
+function renderExchToggle(){
+  const wrap = document.getElementById('exchToggle');
+  const opts = currentMarket().exch;
+  wrap.innerHTML = opts.map((ex,i)=>`<button data-ex="${ex}" class="${i===0?'active':''}">${ex==='ALL'?'All':ex}</button>`).join('');
+  wrap.querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      wrap.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      state.exch = btn.dataset.ex;
+      renderAll();
+    });
+  });
+}
+
+document.getElementById('marketToggle').querySelectorAll('button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('#marketToggle button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    state.market = btn.dataset.mk;
+    state.exch = 'ALL';
+    state.sectors.clear();
+    document.getElementById('pageTitle').textContent = `Earnings Announcements — ${currentMarket().label}`;
+    renderTicker(); renderChips(); renderExchToggle(); updateDateSub(); renderAll();
+  });
+});
+
+function sparkSVG(data, positive){
+  const w=72,h=26,pad=2;
+  const min=Math.min(...data), max=Math.max(...data);
+  const range=(max-min)||1;
+  const pts = data.map((d,i)=>{
+    const x = pad + (i/(data.length-1||1))*(w-2*pad);
+    const y = h - pad - ((d-min)/range)*(h-2*pad);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  const color = positive ? '#34D399' : '#F0554A';
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+
+function fibZoneColor(level){
+  if(level===null || level===undefined) return 'var(--text-muted)';
+  if(level<=38.2) return '#34D399';   // near the 52w low  — green
+  if(level<=61.8) return '#E3B341';   // the "golden pocket" — gold
+  return '#F0554A';                   // near the 52w high — red
+}
+
+function trendBars(eps4q){
+  const vals = eps4q.length ? eps4q : [0,0,0,0];
+  const max = Math.max(...vals, 1);
+  return vals.map((v,i)=>{
+    const h = Math.max(4, Math.round((v/max)*22));
+    const cls = i===vals.length-1 ? 'latest' : '';
+    return `<div class="${cls}" style="height:${h}px" title="Q${i+1}: ${v}"></div>`;
+  }).join('');
+}
+
+function cardHTML(c){
+  const m = currentMarket();
+  const color = m.sectors[c.sector] || '#8B96A6';
+  const sectorLabel = (m.sectorNames && m.sectorNames[c.sector]) ? m.sectorNames[c.sector] : c.sector;
+  const initials = c.ticker.slice(0,2);
+  const reported = c.epsAct !== null;
+  const hasSpark = c.spark && c.spark.length > 1;
+  const pctChg = hasSpark ? ((c.spark[c.spark.length-1]-c.spark[0])/c.spark[0]*100) : 0;
+  const positive = pctChg >= 0;
+  const watched = state.watchlist.has(c.ticker);
+  const whenLabel = c.when === 'today'
+    ? `<span class="when-badge today">Today</span>`
+    : (c.when === 'tomorrow' ? 'Tomorrow' : 'This week');
+
+  return `
+  <div class="card" data-ticker="${c.ticker}">
+    <div class="sector-bar" style="background:${color}"></div>
+    <div class="c-left">
+      <div class="logo" style="color:${color}; border-color:${color}55;">${initials}</div>
+      <div>
+        <div class="co-name">${c.name}</div>
+        <div class="co-ticker">${c.ticker} · ${c.exch}</div>
+        <div class="badges">
+          <span class="pill pill-sector" style="background:${color}">${sectorLabel}</span>
+          <span class="pill pill-outline">${c.cap}${c.cap!=='N/A' ? ' Cap' : ''}</span>
+        </div>
+      </div>
+    </div>
+    <div class="c-center">
+      <div class="metric">
+        <div class="label">EPS Estimate</div>
+        <div class="value mono ${c.epsEst===null?'pending':''}">${c.epsEst!==null? c.currency+c.epsEst.toFixed(2) : 'N/A'}</div>
+      </div>
+      <div class="metric">
+        <div class="label">Revenue Estimate</div>
+        <div class="value mono ${c.revEst===null?'pending':''}">${c.revEst!==null? formatMoney(c.revEst, c.currency) : 'N/A'}</div>
+      </div>
+      <div class="metric">
+        <div class="label">Actual EPS (last qtr)</div>
+        <div class="value mono ${reported?'':'pending'}">${reported? c.currency+c.epsAct.toFixed(2) : 'Awaited'}</div>
+      </div>
+      <div class="metric">
+        <div class="label">Surprise % (last qtr)</div>
+        ${c.surprise!==null
+          ? `<div class="value mono surprise ${c.surprise>=0?'pos':'neg'}">${c.surprise>=0?'+':''}${c.surprise.toFixed(1)}%</div>`
+          : `<div class="value mono pending">—</div>`}
+        <div class="trend-bars">${trendBars(c.eps4q)}</div>
+      </div>
+      <div class="metric">
+        <div class="label">RSI (14)</div>
+        ${c.rsi!==null
+          ? `<div class="value mono ${c.rsi>=70?'neg':(c.rsi<=30?'pos':'')}">${c.rsi.toFixed(1)}${c.rsi>=70?' · OB':(c.rsi<=30?' · OS':'')}</div>`
+          : `<div class="value mono pending">N/A</div>`}
+      </div>
+      <div class="metric">
+        <div class="label">Fibonacci Zone</div>
+        ${c.fibZoneLabel!==null
+          ? `<div class="value mono" style="font-size:12px; color:${fibZoneColor(c.fibLevel)};">${c.currency}${c.fibZoneLow.toFixed(2)} – ${c.currency}${c.fibZoneHigh.toFixed(2)}</div>
+             <div style="font-size:10.5px; color:${fibZoneColor(c.fibLevel)}; font-family:'IBM Plex Mono',monospace;">${c.fibZoneLabel} zone</div>`
+          : `<div class="value mono pending">N/A</div>`}
+      </div>
+    </div>
+    <div class="c-right">
+      <div class="result-time">${c.time} · ${whenLabel}</div>
+      <div class="spark-row">
+        ${hasSpark ? sparkSVG(c.spark, positive) : ''}
+        ${hasSpark ? `<span class="spark-chg" style="color:${positive?'#34D399':'#F0554A'}">${positive?'+':''}${pctChg.toFixed(1)}%</span>` : ''}
+      </div>
+      <div class="actions">
+        <button class="btn-report" data-report="${c.ticker}">View report</button>
+        <button class="watch-btn ${watched?'active':''}" data-watch="${c.ticker}" title="Add to watchlist">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="${watched?'currentColor':'none'}" stroke="currentColor" stroke-width="2"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderHeatmap(list){
+  const reported = list.filter(c=>c.epsAct!==null && c.surprise!==null);
+  document.getElementById('heatmap').innerHTML = reported.map(c=>{
+    const s = c.surprise;
+    const bg = s>=0 ? `rgba(52,211,153,${Math.min(0.25+Math.abs(s)/20,0.9)})` : `rgba(240,85,74,${Math.min(0.25+Math.abs(s)/20,0.9)})`;
+    return `<div class="heat-cell" style="background:${bg}" title="${c.name}"><div class="t">${c.ticker}</div><div class="p">${s>=0?'+':''}${s.toFixed(1)}%</div></div>`;
+  }).join('') || `<div style="color:var(--text-faint); font-size:12.5px;">No reported results yet in the current filter.</div>`;
+}
+
+function getFiltered(){
+  return currentMarket().companies.filter(c=>{
+    if(state.exch !== 'ALL' && c.exch !== state.exch) return false;
+    if(state.sectors.size > 0 && !state.sectors.has(c.sector)) return false;
+    if(state.search && !(c.name.toLowerCase().includes(state.search) || c.ticker.toLowerCase().includes(state.search))) return false;
+    if(state.date === 'today' && c.when !== 'today') return false;
+    if(state.date === 'tomorrow' && c.when !== 'tomorrow') return false;
+    return true;
+  });
+}
+
+function renderAll(){
+  const list = getFiltered();
+  document.getElementById('cardsWrap').innerHTML = list.map(cardHTML).join('') ||
+    `<div style="color:var(--text-faint); padding:40px 0; text-align:center; font-size:13px;">No companies match these filters.</div>`;
+  document.getElementById('resultCount').textContent = `${list.length} compan${list.length===1?'y':'ies'} · ${state.date === 'today' ? "today's" : state.date === 'tomorrow' ? "tomorrow's" : "this week's"} announcements`;
+  renderHeatmap(list);
+  attachCardEvents();
+}
+
+function attachCardEvents(){
+  document.querySelectorAll('[data-watch]').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const t = btn.dataset.watch;
+      if(state.watchlist.has(t)) state.watchlist.delete(t); else state.watchlist.add(t);
+      renderAll();
+    });
+  });
+  document.querySelectorAll('[data-report]').forEach(btn=>{
+    btn.addEventListener('click', ()=> openModal(btn.dataset.report));
+  });
+}
+
+function openModal(ticker){
+  const m = currentMarket();
+  const c = m.companies.find(x=>x.ticker===ticker);
+  const color = m.sectors[c.sector] || '#8B96A6';
+  const sectorLabel = (m.sectorNames && m.sectorNames[c.sector]) ? m.sectorNames[c.sector] : c.sector;
+  const reported = c.epsAct !== null;
+  const hasSpark = c.spark && c.spark.length > 1;
+  document.getElementById('modalBody').innerHTML = `
+    <button class="modal-close" id="modalClose">&times;</button>
+    <h2>${c.name}</h2>
+    <div class="m-sub">${c.ticker} · ${c.exch} · <span style="color:${color}">${sectorLabel}</span></div>
+    <div class="modal-grid">
+      <div class="metric"><div class="label">EPS Estimate</div><div class="value mono">${c.epsEst!==null?c.currency+c.epsEst.toFixed(2):'N/A'}</div></div>
+      <div class="metric"><div class="label">Revenue Estimate</div><div class="value mono">${c.revEst!==null?formatMoney(c.revEst, c.currency):'N/A'}</div></div>
+      <div class="metric"><div class="label">Actual EPS (last qtr)</div><div class="value mono ${reported?'':'pending'}">${reported?c.currency+c.epsAct.toFixed(2):'Awaited'}</div></div>
+      <div class="metric"><div class="label">Actual Revenue</div><div class="value mono pending">Not available</div></div>
+      <div class="metric"><div class="label">Promoter Holding</div><div class="value mono pending">Not available</div></div>
+      <div class="metric"><div class="label">Result Time</div><div class="value mono">${c.time}</div></div>
+      <div class="metric"><div class="label">RSI (14)</div><div class="value mono ${c.rsi!==null?(c.rsi>=70?'neg':(c.rsi<=30?'pos':'')):'pending'}">${c.rsi!==null?c.rsi.toFixed(1)+(c.rsi>=70?' (Overbought)':(c.rsi<=30?' (Oversold)':'')):'N/A'}</div></div>
+      <div class="metric"><div class="label">Fibonacci Zone (52W)</div><div class="value mono ${c.fibZoneLabel===null?'pending':''}" style="${c.fibZoneLabel!==null?'color:'+fibZoneColor(c.fibLevel)+';':''}">${c.fibZoneLabel!==null?c.currency+c.fibZoneLow.toFixed(2)+' – '+c.currency+c.fibZoneHigh.toFixed(2)+' ('+c.fibZoneLabel+')':'N/A'}</div></div>
+    </div>
+    <div class="label" style="margin-bottom:6px;">EPS — last 4 quarters</div>
+    <div class="trend-bars" style="height:36px; gap:4px; margin-bottom:18px;">
+      ${(c.eps4q.length?c.eps4q:[0,0,0,0]).map((v,i,arr)=>{
+        const max=Math.max(...arr,1); const h=Math.max(6,Math.round((v/max)*34));
+        return `<div style="width:16px;height:${h}px;background:${i===arr.length-1?color:'var(--hairline)'};border-radius:2px;" title="${c.currency}${v}"></div>`;
+      }).join('')}
+    </div>
+    ${hasSpark ? `<div class="label" style="margin-bottom:6px;">Price — last sessions</div>${sparkSVG(c.spark, c.spark[c.spark.length-1]>=c.spark[0]).replace('width="72" height="26"','width="220" height="46"')}` : ''}
+  `;
+  document.getElementById('modalBackdrop').classList.add('open');
+  document.getElementById('modalClose').addEventListener('click', closeModal);
+}
+function closeModal(){ document.getElementById('modalBackdrop').classList.remove('open'); }
+document.getElementById('modalBackdrop').addEventListener('click', (e)=>{ if(e.target.id === 'modalBackdrop') closeModal(); });
+
+document.getElementById('searchInput').addEventListener('input', (e)=>{ state.search = e.target.value.trim().toLowerCase(); renderAll(); });
+document.getElementById('dateToggle').querySelectorAll('button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('#dateToggle button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    state.date = btn.dataset.date;
+    updateDateSub();
+    renderAll();
+  });
+});
+
+function updateDateSub(){
+  const today = new Date();
+  const locale = state.market === 'US' ? 'en-US' : 'en-IN';
+  const opts = {weekday:'long', month:'long', day:'numeric'};
+  const label = state.date==='today' ? today.toLocaleDateString(locale, opts)
+    : state.date==='tomorrow' ? new Date(today.getTime()+86400000).toLocaleDateString(locale, opts)
+    : 'Week of ' + today.toLocaleDateString(locale, {month:'long', day:'numeric'});
+  document.getElementById('dateSub').textContent = label;
+}
+
+renderTicker();
+renderChips();
+renderExchToggle();
+updateDateSub();
+renderAll();
+</script>
+</body>
+</html>
