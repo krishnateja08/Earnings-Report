@@ -1,0 +1,10 @@
+# Local-only Telegram credentials — never commit real tokens.
+# GitHub Actions gets its credentials from repo Secrets instead (see
+# .github/workflows/earnings.yml), so this file only matters when running
+# the script on your own machine.
+telegram_config.py
+
+__pycache__/
+*.pyc
+.venv/
+venv/
