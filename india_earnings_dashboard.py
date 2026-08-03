@@ -1,15 +1,20 @@
 """
 india_earnings_dashboard.py
 ----------------------------
-Fetches real earnings data (today / tomorrow / this week) for a list of
-NSE/BSE-listed Indian companies AND a list of US-listed companies (grouped
-by S&P sector-ETF) using Yahoo Finance (via the free `yfinance` library),
-and renders it into an interactive HTML dashboard with an India/USA tab
-toggle (sticky ticker header, sector filters, horizontal cards, sparklines,
-surprise heatmap, etc.)
+Fetches real earnings data (today / tomorrow / this week) for the FULL live
+NIFTY 200 (India) and S&P 500 (USA) constituent lists — pulled fresh on
+every run from NSE's archives and Wikipedia respectively, sector-mapped
+automatically, no manual ticker maintenance needed — using Yahoo Finance
+(via the free `yfinance` library), and renders it into an interactive HTML
+dashboard with an India/USA tab toggle (sticky ticker header, sector
+filters, horizontal cards, sparklines, surprise heatmap, etc.)
+
+If you'd rather scan a small curated list instead of the full ~700-ticker
+universe (e.g. for a quick test run), set USE_FULL_NIFTY200=false and/or
+USE_FULL_SP500=false as environment variables — see section 1c below.
 
 Install requirements first:
-    pip install yfinance pandas
+    pip install yfinance pandas lxml
 
 Run:
     python india_earnings_dashboard.py
@@ -41,6 +46,8 @@ NOTE ON DATA COVERAGE (please read):
   RSI, Fibonacci zone) is pulled live, for both the India and USA tabs.
 """
 
+import csv
+import io
 import json
 import os
 import time
@@ -50,6 +57,16 @@ import urllib.request
 import urllib.parse
 import urllib.error
 import yfinance as yf
+
+# Toggle whether to pull the FULL live NIFTY 200 / S&P 500 constituent
+# lists at runtime (recommended) or fall back to the small curated lists
+# further down this file. Override via env vars if you want a quick/small
+# run (e.g. while testing), or if the live sources are ever unreachable
+# from your network:
+#   USE_FULL_NIFTY200=false
+#   USE_FULL_SP500=false
+USE_FULL_NIFTY200 = os.environ.get("USE_FULL_NIFTY200", "true").strip().lower() in ("1", "true", "yes", "on")
+USE_FULL_SP500 = os.environ.get("USE_FULL_SP500", "true").strip().lower() in ("1", "true", "yes", "on")
 
 try:
     import telegram_config as tg_cfg
@@ -205,7 +222,10 @@ CUSTOM_COMPANIES = [
     {"ticker": "SILVERBEES.NS", "sector": "Other"},
 ]
 
-ALL_COMPANIES = INDIA_COMPANIES + CUSTOM_COMPANIES
+# This ~100-company curated list is now only a FALLBACK, used if the live
+# NIFTY 200 fetch (see fetch_nifty200_list() below) fails or is disabled via
+# USE_FULL_NIFTY200=false.
+ALL_COMPANIES_STATIC = INDIA_COMPANIES + CUSTOM_COMPANIES
 
 
 # ---------------------------------------------------------------------
@@ -247,8 +267,9 @@ SECTOR_MAP = {
         # Technology (16)
         "NVDA", "MSFT", "AAPL", "AVGO", "AMD", "ORCL", "ADBE", "PANW",
         "NOW", "SNPS", "CRM", "CSCO", "INTC", "QCOM", "AMAT", "LRCX",
-        # Extras: SMCI
-        "SMCI",
+        # Extras: SMCI, PLTR (added to the S&P 500 in Sept 2024 — was
+        # previously missing from this curated list)
+        "SMCI", "PLTR",
     ]},
     **{s: "XLC" for s in [
         # Communication Services (12)
@@ -300,7 +321,152 @@ SECTOR_MAP = {
     ]},
 }
 
-ALL_COMPANIES_USA = [{"ticker": t, "sector": s} for t, s in SECTOR_MAP.items()]
+# Also just a FALLBACK now — used if the live S&P 500 fetch (see
+# fetch_sp500_list() below) fails or is disabled via USE_FULL_SP500=false.
+ALL_COMPANIES_USA_STATIC = [{"ticker": t, "sector": s} for t, s in SECTOR_MAP.items()]
+
+
+# ---------------------------------------------------------------------
+# 1c. Live index-constituent fetchers (NIFTY 200 from NSE, S&P 500 from
+#     Wikipedia). Both return None on any failure so the caller can fall
+#     back to the static lists above — network hiccups or a source
+#     changing its page/file layout should never crash the whole run.
+# ---------------------------------------------------------------------
+
+# NSE's own "Industry" classification (from the NIFTY 200 constituent
+# file) mapped onto this dashboard's 6-category sector taxonomy. Anything
+# not listed here (Capital Goods, Metals & Mining, Realty, Chemicals,
+# Construction, Services, Telecommunication, Consumer Durables/Services,
+# Textiles, etc.) falls into "Other".
+NIFTY_INDUSTRY_TO_SECTOR = {
+    "Information Technology": "Technology",
+    "Oil Gas & Consumable Fuels": "Energy",
+    "Power": "Energy",
+    "Financial Services": "Banking",
+    "Fast Moving Consumer Goods": "FMCG",
+    "Automobile and Auto Components": "Automobile",
+    "Healthcare": "Pharma",
+}
+
+# GICS Sector (as published on Wikipedia's S&P 500 constituent table) ->
+# the matching SPDR Select Sector ETF ticker used throughout this dashboard.
+GICS_SECTOR_TO_ETF = {
+    "Information Technology": "XLK",
+    "Communication Services": "XLC",
+    "Consumer Discretionary": "XLY",
+    "Consumer Staples": "XLP",
+    "Health Care": "XLV",
+    "Financials": "XLF",
+    "Industrials": "XLI",
+    "Energy": "XLE",
+    "Materials": "XLB",
+    "Real Estate": "XLRE",
+    "Utilities": "XLU",
+}
+
+
+def fetch_nifty200_list():
+    """Downloads the live NIFTY 200 constituent list straight from NSE's
+    archives (columns: Company Name, Industry, Symbol, Series, ISIN Code)
+    and maps each company onto our sector taxonomy. Returns None on any
+    failure (network error, unexpected/short file, etc.) so main() can
+    fall back to ALL_COMPANIES_STATIC."""
+    url = "https://archives.nseindia.com/content/indices/ind_nifty200list.csv"
+    req = urllib.request.Request(url, headers={
+        # A plain urllib default User-Agent gets blocked by NSE's archives
+        # host, so we ask for the CSV like a regular browser would.
+        "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                        "AppleWebKit/537.36 (KHTML, like Gecko) "
+                        "Chrome/124.0 Safari/537.36"),
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            raw = resp.read().decode("utf-8", errors="ignore")
+    except Exception as e:
+        print(f"  [nifty200] live fetch failed ({e}) — will use the static fallback list")
+        return None
+
+    try:
+        reader = csv.DictReader(io.StringIO(raw))
+        companies = []
+        for row in reader:
+            symbol = (row.get("Symbol") or "").strip()
+            industry = (row.get("Industry") or "").strip()
+            if not symbol or symbol.upper().startswith("DUMMY"):
+                # NSE lists a few "Dummy ..." placeholder rows around
+                # demergers/corporate actions — these aren't real tickers.
+                continue
+            sector = NIFTY_INDUSTRY_TO_SECTOR.get(industry, "Other")
+            companies.append({"ticker": f"{symbol}.NS", "sector": sector})
+    except Exception as e:
+        print(f"  [nifty200] couldn't parse live CSV ({e}) — will use the static fallback list")
+        return None
+
+    if len(companies) < 150:
+        print(f"  [nifty200] only parsed {len(companies)} rows (expected ~200) "
+              "— will use the static fallback list")
+        return None
+
+    print(f"  [nifty200] using {len(companies)} live NIFTY 200 constituents")
+    return companies
+
+
+def fetch_sp500_list():
+    """Downloads the live S&P 500 constituent table from Wikipedia and maps
+    each company's GICS Sector onto the matching SPDR sector-ETF bucket.
+    Returns None on any failure so main() can fall back to
+    ALL_COMPANIES_USA_STATIC."""
+    url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+    try:
+        import pandas as pd
+        # Wikipedia's first table on that page is the constituent list:
+        # Symbol | Security | GICS Sector | GICS Sub-Industry | ...
+        df = pd.read_html(url)[0]
+        companies = []
+        for _, row in df.iterrows():
+            # Yahoo Finance uses a hyphen where Wikipedia uses a dot for
+            # dual-class tickers, e.g. BRK.B -> BRK-B, BF.B -> BF-B.
+            symbol = str(row["Symbol"]).strip().replace(".", "-")
+            gics = str(row["GICS Sector"]).strip()
+            sector = GICS_SECTOR_TO_ETF.get(gics, "Other")
+            companies.append({"ticker": symbol, "sector": sector})
+    except Exception as e:
+        print(f"  [sp500] live fetch failed ({e}) — will use the static fallback list")
+        return None
+
+    if len(companies) < 400:
+        print(f"  [sp500] only parsed {len(companies)} rows (expected ~500) "
+              "— will use the static fallback list")
+        return None
+
+    # Belt-and-braces: make sure PLTR is present even if Wikipedia's table
+    # layout hiccups on a given run, since it's the ticker that prompted
+    # this fallback logic in the first place.
+    if not any(c["ticker"] == "PLTR" for c in companies):
+        companies.append({"ticker": "PLTR", "sector": "XLK"})
+
+    print(f"  [sp500] using {len(companies)} live S&P 500 constituents")
+    return companies
+
+
+def build_india_universe():
+    """Returns the list of {ticker, sector} dicts to scan for India, live
+    NIFTY 200 constituents by default, falling back to the static list."""
+    if USE_FULL_NIFTY200:
+        live = fetch_nifty200_list()
+        if live:
+            return live
+    return ALL_COMPANIES_STATIC
+
+
+def build_usa_universe():
+    """Returns the list of {ticker, sector} dicts to scan for the USA, live
+    S&P 500 constituents by default, falling back to the static list."""
+    if USE_FULL_SP500:
+        live = fetch_sp500_list()
+        if live:
+            return live
+    return ALL_COMPANIES_USA_STATIC
 
 
 # ---------------------------------------------------------------------
@@ -1155,17 +1321,26 @@ def main():
     indexes_in = fetch_indexes(INDIA_INDEX_TARGETS)
     indexes_us = fetch_indexes(USA_INDEX_TARGETS)
 
-    print(f"Fetching data for {len(ALL_COMPANIES)} India companies...")
+    print("Building company universe (live NIFTY 200 / S&P 500 lookups)...")
+    all_companies_in = build_india_universe()
+    all_companies_usa = build_usa_universe()
+
+    # Scanning the full ~700-ticker universe (each needs 2 Yahoo Finance
+    # calls plus a pause) typically takes 15-30+ minutes and can occasionally
+    # hit Yahoo's rate limiting. If that's a problem for your run cadence,
+    # set USE_FULL_NIFTY200=false / USE_FULL_SP500=false to fall back to the
+    # much smaller curated lists further up this file.
+    print(f"Fetching data for {len(all_companies_in)} India companies...")
     companies_in = []
-    for entry in ALL_COMPANIES:
+    for entry in all_companies_in:
         result = fetch_company(entry["ticker"], entry["sector"], today, tomorrow, week_end, market="IN")
         if result:
             companies_in.append(result)
             print(f"  [ok] {entry['ticker']} -> {result['when']}")
 
-    print(f"Fetching data for {len(ALL_COMPANIES_USA)} USA companies...")
+    print(f"Fetching data for {len(all_companies_usa)} USA companies...")
     companies_us = []
-    for entry in ALL_COMPANIES_USA:
+    for entry in all_companies_usa:
         result = fetch_company(entry["ticker"], entry["sector"], today, tomorrow, week_end, market="US")
         if result:
             companies_us.append(result)
