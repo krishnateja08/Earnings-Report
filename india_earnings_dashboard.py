@@ -40,7 +40,13 @@ TELEGRAM ALERTS:
 NOTE ON DATA COVERAGE (please read):
   Yahoo Finance's free data does NOT reliably provide:
     - Promoter holding %          -> shown as "Not available"
-    - Pre-market / Post-market flag for the result -> shown as "Not specified"
+    - Pre-market / Post-market flag for the result, for INDIA tickers
+      -> shown as "Not specified" (NSE/BSE don't expose this via Yahoo)
+  For USA tickers, the pre/post-market flag ("Before Market Open" /
+  "After Market Close" / "During Market Hours") IS derived, from Yahoo's
+  earningsTimestampStart/earningsTimestamp fields when Yahoo has published
+  them for that company yet — if Yahoo hasn't set a specific time for an
+  upcoming report, it'll still show "Not specified" until they do.
   Everything else (EPS estimate/actual, revenue estimate/actual, surprise %,
   last-4-quarter EPS trend, 7-day price sparkline, market cap category,
   RSI, Fibonacci zone) is pulled live, for both the India and USA tabs.
@@ -56,6 +62,7 @@ import html
 import urllib.request
 import urllib.parse
 import urllib.error
+from zoneinfo import ZoneInfo
 import yfinance as yf
 
 # Toggle whether to pull the FULL live NIFTY 200 / S&P 500 constituent
@@ -511,6 +518,31 @@ def to_million_usd(value):
     return round(value / 1e6, 1)
 
 
+def classify_earnings_time(info, market):
+    """Best-effort Before-Market-Open / After-Market-Close / During-Market
+    label, derived from Yahoo's earningsTimestampStart/earningsTimestamp/
+    earningsTimestampEnd fields (Unix timestamps) when Yahoo publishes them.
+    US-only: NSE/BSE-listed companies don't reliably expose this via Yahoo,
+    so India tickers still fall back to 'Not specified'."""
+    if market != "US":
+        return "Not specified"
+    ts = (info.get("earningsTimestampStart")
+          or info.get("earningsTimestamp")
+          or info.get("earningsTimestampEnd"))
+    if not ts:
+        return "Not specified"
+    try:
+        dt_et = datetime.datetime.fromtimestamp(ts, tz=ZoneInfo("America/New_York"))
+    except Exception:
+        return "Not specified"
+    t = dt_et.time()
+    if t < datetime.time(9, 30):
+        return "Before Market Open"
+    if t >= datetime.time(16, 0):
+        return "After Market Close"
+    return "During Market Hours"
+
+
 def classify_when(earnings_date, today, tomorrow, week_end):
     if earnings_date == today:
         return "today"
@@ -655,7 +687,7 @@ def fetch_company(ticker, sector, today, tomorrow, week_end, market="IN", pause=
             "currency": currency,
             "cap": cap_cat,
             "when": when,
-            "time": "Not specified",
+            "time": classify_earnings_time(info, market),
             "epsEst": round(float(earn_row.get("EPS Estimate")), 2) if earn_row.get("EPS Estimate") not in (None,) else None,
             "revEst": rev_est,
             "epsAct": round(float(last_actual_eps), 2) if last_actual_eps is not None else None,
