@@ -1303,9 +1303,22 @@ def _format_table(companies):
 def build_tomorrow_message(companies_in, companies_us):
     """Builds a Telegram-ready (HTML parse-mode) message listing every
     company reporting earnings TOMORROW, as an aligned monospace table
-    per market: Company (ticker), EPS estimate, RSI, and Fibonacci zone."""
+    per market: Company (ticker), EPS estimate, RSI, and Fibonacci zone.
+    Returns None when there's nothing to report (so the caller sends no
+    message at all instead of an empty "nothing tomorrow" notice)."""
     tomorrow_in = [c for c in companies_in if c["when"] == "tomorrow"]
     tomorrow_us = [c for c in companies_us if c["when"] == "tomorrow"]
+
+    markets_flag = _tg_setting("TELEGRAM_MARKETS", "BOTH")
+    include_in = markets_flag in ("IN", "BOTH")
+    include_us = markets_flag in ("US", "BOTH")
+
+    has_in = include_in and tomorrow_in
+    has_us = include_us and tomorrow_us
+    if not has_in and not has_us:
+        # Nothing reporting tomorrow (for the market(s) this run cares
+        # about) -> signal "don't send anything" to the caller.
+        return None
 
     tomorrow_date = (datetime.date.today() + datetime.timedelta(days=1)).strftime("%A, %d %B %Y")
     parts = [f"<b>📅 Earnings Tomorrow — {tomorrow_date}</b>"]
@@ -1316,13 +1329,10 @@ def build_tomorrow_message(companies_in, companies_us):
         table = _format_table(companies)
         parts.append(f"\n<b>{flag_title}</b>\n<pre>{table}</pre>")
 
-    if _tg_setting("TELEGRAM_MARKETS", "BOTH") in ("IN", "BOTH"):
+    if has_in:
         _section("🇮🇳 INDIA", tomorrow_in)
-    if _tg_setting("TELEGRAM_MARKETS", "BOTH") in ("US", "BOTH"):
+    if has_us:
         _section("🇺🇸 USA", tomorrow_us)
-
-    if len(parts) == 1:
-        parts.append("\nNo companies reporting tomorrow in the tracked list.")
 
     return "\n".join(parts)
 
@@ -1331,6 +1341,10 @@ def notify_telegram_tomorrow(companies_in, companies_us):
     if not _telegram_ready():
         return
     message = build_tomorrow_message(companies_in, companies_us)
+    if message is None:
+        print("  [telegram] No companies reporting tomorrow — skipping "
+              "alert (no message sent).")
+        return
     # Telegram's hard cap is 4096 characters per message — chunk if needed.
     chunks = [message[i:i + 4000] for i in range(0, len(message), 4000)] or [message]
     ok_all = True
